@@ -1,0 +1,59 @@
+<html>
+<head>
+    <title>AiS Bot</title>
+    <link rel="stylesheet" type="text/css" href="css/app.css"/>
+    <script src="js/jquery-1.11.3.js"></script>
+    <script src="js/jquery.countdown.js"></script>
+    <script src="js/moment.min.js"></script>
+    <script src="js/js.cookie.js"></script>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="sidebar" id="queue">
+            <h2>Warteliste:</h2>
+            <table id="queueTable">
+
+            </table>
+        </div>
+
+        <div class="content" id="cam">
+            <img src="/images/robot.png" width="640" height="480"  />
+        </div>
+
+        <form class="subSidebar" id="myForm">
+            <input id="userName"/>
+            <button id="bSubmit" type ="submit">Add</button>
+        </form>
+
+        <div class="subContent">
+            <div id="noActiveUser">
+                Niemand kontrolliert den Roboter. Trage dich links in die Warteliste ein.
+            </div>
+
+            <div id="showActiveUser">
+                <div id="activeUserName" class="countdown"></div> steuert den Roboter noch <div id="activeUserCountdown" class="countdown"></div>
+            </div>
+
+            <div id="preControl">
+                Noch <div id="countdownUntilStart" class="countdown"></div> bis du an der Reihe bist!
+            </div>
+
+            <div id="control">
+                Bewege den Roboter mit WASD.
+                <br/>
+                Du steuerst den Roboter noch
+                <div id="countdownUntilStop" class="countdown"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="js/sandbot.js"></script>
+
+</body>
+
+</html>
