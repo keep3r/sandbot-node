@@ -229,7 +229,7 @@ function ControlStart(event)
     $("#control").show();
 
     var theEndDate = new Date(myUserObject.StartDate);
-    theEndDate.setSeconds(theEndDate.getSeconds() + myControlTime + 1);
+    theEndDate.setSeconds(theEndDate.getSeconds() + myControlTime);
 
     // Start timer until control allowed
     $("#countdownUntilStop")

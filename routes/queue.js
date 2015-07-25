@@ -28,31 +28,6 @@ db.serialize(function() {
     });
 });
 
-// Repeating task for maintenance functions
-function QueueTask()
-{
-    // Select Current User
-    db.get("SELECT UserId FROM Queue ORDER BY StartDate ASC", [],
-        function (err, row)
-        {
-            if (err || row == undefined)
-            {
-                global.CurrentUserId = 0;
-            }
-            else
-            {
-                global.CurrentUserId = row.UserId;
-            }
-        }
-    );
-
-    // Delete expired entries
-    var theDate = new Date();
-    theDate.setSeconds(theDate.getSeconds() - global.ControlTime);
-
-    db.run("DELETE FROM Queue WHERE StartDate < ?", [theDate]);
-};
-
 // SetText on SparkNode via HTTPS POST
 function SetText(theName)
 {
@@ -102,6 +77,10 @@ exports.getAll = function(req, res)
                 }
 
                 global.CurrentUserId = rows[0].UserId;
+            }
+            else
+            {
+                SetText('');
             }
             res.send(JSON.stringify(rows));
         });
