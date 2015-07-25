@@ -18,7 +18,7 @@ var core = new spark.Core({
 // Database init
 db.serialize(function() {
 
-    db.run('CREATE TABLE IF NOT EXISTS Queue (UserId INT, UserName TEXT, StartDate DateTime)');
+    db.run('CREATE TABLE IF NOT EXISTS Queue (UserId INT, UserName TEXT, StartDate INTEGER)');
     //db.run('INSERT INTO Queue (UserId, UserName, StartDate) VALUES (23,"Nico","2015-07-19 15:23:23")');
 
     // db.run("INSERT INTO Queue (UserId, UserName, StartDate) VALUES (?,?,?)", [23, 'Nico', new Date()]);
@@ -47,16 +47,13 @@ function SetText(theName)
     });
 }
 
-// repeat(QueueTask).every(1000, 'ms').start.now();
-
-// GET queue with all users
-exports.getAll = function(req, res)
+function QueueTask()
 {
     var theDate = new Date();
     theDate.setSeconds(theDate.getSeconds() - global.ControlTime);
 
     // Delete expired entries
-    db.run("DELETE FROM Queue WHERE StartDate < ?", [theDate], function(err)
+    db.run("DELETE FROM Queue WHERE StartDate < ?", [GetTimeStamp(theDate)], function(err)
     {
         // Fetch all remaining entries
         db.all("SELECT rowid, * FROM Queue ORDER BY StartDate ASC", function(err, rows)
@@ -67,13 +64,6 @@ exports.getAll = function(req, res)
                 if(global.CurrentUserId != rows[0].UserId)
                 {
                     SetText(rows[0].UserName.substring(0,20) + ' ist online');
-
-                    /*
-                    core.SetText('2'+rows[0].UserName, function(err, data)
-                    {
-                        console.log('spark: ' + data);
-                    });
-                    */
                 }
 
                 global.CurrentUserId = rows[0].UserId;
@@ -86,8 +76,20 @@ exports.getAll = function(req, res)
                     global.CurrentUserId=0;
                 }
             }
-            res.send(JSON.stringify(rows));
         });
+    });
+}
+
+repeat(QueueTask).every(1000, 'ms').start.now();
+
+// GET queue with all users
+exports.getAll = function(req, res)
+{
+    // Fetch all entries strftime('%s',StartDate) -
+    db.all("SELECT rowid, UserName, StartDate, StartDate - strftime('%s',CURRENT_TIMESTAMP)  AS Seconds FROM Queue ORDER BY StartDate ASC", function(err, rows)
+    {
+        console.log(err);
+        res.send(JSON.stringify(rows));
     });
 
 };
@@ -109,21 +111,24 @@ exports.addQueue = function(req, res)
 
             if (!err && row != undefined)
             {
-                theDate = new Date(row.StartDate);
+                theDate = new Date(row.StartDate * 1000);
                 theDate.setSeconds(theDate.getSeconds() + global.ControlTime);
             }
 
             var theUserId = getRandomInt(429491, 4294967295);
 
             db.run("INSERT INTO Queue (UserId, UserName, StartDate) VALUES (?,?,?)",
-                [theUserId, data.UserName, theDate],
+                [theUserId, data.UserName, GetTimeStamp(theDate)],
                 function (err) {
                     if (err) {
                         res.send({'error': 'An error has occurred'});
                     } else {
                         console.log('Success: ' + this.lastID + ':' + theUserId);
+                        console.log('Date: ' + theDate);
                         //res.send('{"userId":'+theUserId+'}');
-                        res.send(JSON.stringify({rowid: this.lastID, UserId: theUserId, StartDate: theDate}));
+                        var theSeconds = GetTimeStamp(theDate) - GetTimeStamp(new Date());
+
+                        res.send(JSON.stringify({rowid: this.lastID, UserId: theUserId, Seconds: theSeconds}));
                     }
                 }
             );
@@ -137,3 +142,8 @@ exports.refreshReservation = function(req, res)
 {
     res.send(JSON.stringify({success: true}));
 };
+
+function GetTimeStamp(theDate)
+{
+    return Math.round(theDate.getTime() / 1000);
+}
