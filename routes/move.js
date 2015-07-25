@@ -1,6 +1,5 @@
 
 var exec = require('child_process').exec;
-    //PythonShell = require('python-shell');
 
 exports.moveRobot = function(req, res)
 {
@@ -53,45 +52,23 @@ exports.moveRobot = function(req, res)
 
         if(thePythonArgument != '')
         {
-            console.log('exec');
-            exec('python /var/www/client.py ' + thePythonArgument,
-            //exec('python /var/www/client.py f',
+            exec('python /var/www/client.py ' + thePythonArgument,{cwd: '/var/www'},
                 function (error, stdout, stderr)
                 {
-                    console.log('error' + error);
-                    console.log('stdout' + stdout);
-                    console.log('stderr' + stderr);
-
                     if(error)
                     {
-
+                        console.log('error' + error);
+                        console.log('stderr' + stderr);
                     }
                     else
                     {
+                        console.log('stdout' + stdout);
                         theReturnValue = true;
 
                     }
                 }
             );
         }
-
-        // Code zum Bewegen des Motors hier einfügen
-
-/*
-        var options = {
-            mode: 'text',
-            //pythonPath: 'path/to/python',
-            //pythonOptions: ['-u'],
-            //scriptPath: '/var/www/client.py',
-            args: [thePythonArgument]
-        };
-
-        PythonShell.run('/var/www/client.py', options, function (err, results) {
-            if (!err) theReturnValue = true;
-            // results is an array consisting of messages collected during execution
-            console.log('results: %j', results);
-        });
-*/
 
     }
 

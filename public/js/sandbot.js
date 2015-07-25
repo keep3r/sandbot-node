@@ -1,4 +1,4 @@
-var myControlTime = 15; //[s]
+var myControlTime = 60; //[s]
 var myUserObject = Cookies.getJSON('data');
 var myQueueUpdateInterval = 2000;
 var myUpdateQueueIntervalTimer;
