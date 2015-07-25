@@ -80,7 +80,11 @@ exports.getAll = function(req, res)
             }
             else
             {
-                // SetText('');
+                if(global.CurrentUserId!=0)
+                {
+                    SetText('');
+                    global.CurrentUserId=0;
+                }
             }
             res.send(JSON.stringify(rows));
         });
