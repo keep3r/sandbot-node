@@ -80,7 +80,7 @@ exports.getAll = function(req, res)
             }
             else
             {
-                SetText('');
+                // SetText('');
             }
             res.send(JSON.stringify(rows));
         });
