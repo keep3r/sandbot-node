@@ -63,7 +63,7 @@ function QueueTask()
                 // New controlling user, change text on sparknode
                 if(global.CurrentUserId != rows[0].UserId)
                 {
-                    SetText(rows[0].UserName.substring(0,20) + ' ist online');
+                    SetText(rows[0].UserName.substring(0,20) + ' steuert');
                 }
 
                 global.CurrentUserId = rows[0].UserId;
@@ -72,7 +72,7 @@ function QueueTask()
             {
                 if(global.CurrentUserId!=0)
                 {
-                    SetText('niemert');
+                    SetText('Niemand steuert');
                     global.CurrentUserId=0;
                 }
             }
