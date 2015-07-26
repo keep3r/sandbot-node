@@ -3,6 +3,7 @@ var express = require('express'),
     http = require('http'),
     queue = require('./routes/queue'),
     move = require('./routes/move'),
+    info = require('./routes/info'),
     logger = require('morgan'),
     bodyParser = require('body-parser'),
     static = require('serve-static');
@@ -23,6 +24,7 @@ app.use(static(path.join(__dirname, 'public')));
 
 
 app.get('/api/queue', queue.getAll);
+app.get('/api/info', info.getInfo);
 app.get('/api/queue/:id', queue.refreshReservation);
 app.post('/api/queue', queue.addQueue);
 app.get('/api/move/:action/:id', move.moveRobot);
