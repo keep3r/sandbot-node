@@ -1,5 +1,6 @@
 var myCookieData = Cookies.getJSON('data');
 var myQueueUpdateInterval = 1000;
+var myInfoUpdateInterval = 10000;
 var myUpdateQueueIntervalTimer;
 var myKeyPressStartTime;
 var myLastKeyPress;
@@ -32,6 +33,9 @@ $(document).ready(function()
     // Start everything
     GetQueue();
     myUpdateQueueIntervalTimer = setInterval(GetQueue, myQueueUpdateInterval);
+
+    GetInfo();
+    setInterval(GetInfo, myInfoUpdateInterval);
 });
 
 $(document).keydown(function(e)
@@ -101,6 +105,27 @@ function GetQueue()
         success: function (data)
         {
             ProcessQueueData(data);
+        },
+
+        error: function (data)
+        {
+        }
+    });
+}
+
+// Get Info
+function GetInfo()
+{
+    $.ajax({
+        type: "GET",
+        url: "/api/info",
+        contentType: "application/json; charset=utf-8",
+        crossDomain: true,
+        dataType: "json",
+        cache: false,
+        success: function (data)
+        {
+            $('#voltage').text(data.Voltage);
         },
 
         error: function (data)
@@ -209,7 +234,9 @@ function ProcessPostResult(data)
 
     Cookies.set('data', myUserObject,{ expires: theExpirationDate });
 
-    setTimeout(ControlStart(theExpirationDate), data.Seconds*1000);
+    console.log('ProcessPostResult' + data.Seconds);
+
+    setTimeout(function(){ControlStart(theExpirationDate)}, data.Seconds*1000);
 }
 
 // Control of robot starts
@@ -222,7 +249,7 @@ function ControlStart(theExpirationDate)
     $("#control").show();
     $("#control").focus();
 
-    // Start timer until control allowed
+    // Start timer until control stopped
     $("#countdownUntilStop")
         .countdown(theExpirationDate)
         .on('update.countdown', function(event)

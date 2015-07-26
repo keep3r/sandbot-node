@@ -54,6 +54,15 @@ body
     font-size: 15px;
 }
 
+.info
+{
+    text-align: right;
+    margin: 0 auto;
+    background-color: #aaddff;
+    font-size: 12px;
+}
+
+
 .user-row
 {
     color: green;

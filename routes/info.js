@@ -7,6 +7,8 @@ exports.getInfo = function(req, res)
     exec('python /home/pi/spi-test.py',{cwd: '/home/pi/'},
         function (error, stdout, stderr)
         {
+            var theVoltage = 0;
+
             if(error)
             {
                 console.log('error' + error);
@@ -15,8 +17,10 @@ exports.getInfo = function(req, res)
             else
             {
                 console.log('stdout' + stdout);
-                res.send(JSON.stringify({voltage: stdout}));
+                theVoltage = stdout.replace(/\n$/, "");
             }
+
+            res.send(JSON.stringify({Voltage: theVoltage}));
         }
     );
 
