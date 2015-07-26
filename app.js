@@ -9,7 +9,7 @@ var express = require('express'),
 
 
 global.CurrentUserId = 0;
-global.ControlTime = 15;// [s]
+global.ControlTime = 60;// [s]
 
 var app = express();
 
