@@ -26,6 +26,8 @@
         <form class="subSidebar" id="myForm">
             <input id="userName"/>
             <button id="bSubmit" type ="submit">Add</button>
+            <br/>
+            <input id="cbRoundRobin" type="checkbox">Round robin?</input>
         </form>
 
         <div class="subContent">
@@ -34,18 +36,15 @@
             </div>
 
             <div id="showActiveUser">
-                <div id="activeUserName" class="countdown"></div> steuert den Roboter noch <div id="activeUserCountdown" class="countdown"></div>
-            </div>
-
-            <div id="preControl">
-                Noch <div id="countdownUntilStart" class="countdown"></div> bis du an der Reihe bist!
+                <div id="activeUserName" class="countdown"></div> steuert den Roboter.
             </div>
 
             <div id="control">
                 Bewege den Roboter mit WASD.
                 <br/>
                 Du steuerst den Roboter noch
-                <div id="countdownUntilStop" class="countdown"></div>
+                <div id="countdownUntilStop" class="countdown"></div>&nbsp;Sekunden
+
             </div>
 
         </div>

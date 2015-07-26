@@ -1,33 +1,33 @@
-var myControlTime = 60; //[s]
-var myUserObject = Cookies.getJSON('data');
-var myQueueUpdateInterval = 2000;
+var myCookieData = Cookies.getJSON('data');
+var myQueueUpdateInterval = 1000;
 var myUpdateQueueIntervalTimer;
 var myKeyPressStartTime;
 var myLastKeyPress;
+var myUserObject;
 
 $(document).ready(function()
 {
-    if(myUserObject != undefined)
-    {
-        var theEndDate = new Date(myUserObject.StartDate);
-        theEndDate.setSeconds(theEndDate.getSeconds() + myControlTime);
-
-        if(new Date() < theEndDate)
-        {
-            // User already in Queue at page load and not expired. Restart Counters
-            ProcessPostResult(myUserObject);
-        }
-        else{
-            console.log('cookie is expired')
-        }
-    }
-
     $('#userName').focus();
-
-
     $('#showActiveUser').hide();
-    $('#preControl').hide();
     $('#control').hide();
+
+    if(myCookieData != undefined)
+    {
+        $.ajax({
+            type: "POST",
+            url: "/api/queue",
+            data: JSON.stringify({UserId: myCookieData.UserId}),
+            contentType: "application/json; charset=utf-8",
+            crossDomain: true,
+            dataType: "json",
+            success: ProcessPostResult,
+
+            error: function (data)
+            {
+                console.log(data);
+            }
+        });
+    }
 
     // Start everything
     GetQueue();
@@ -81,6 +81,8 @@ $(document).keydown(function(e)
 
 $(document).keyup(function(e)
 {
+    if(myUserObject == undefined) return;
+
     $.get("/api/move/stop/" + myUserObject.UserId);
 });
 
@@ -95,6 +97,7 @@ function GetQueue()
         contentType: "application/json; charset=utf-8",
         crossDomain: true,
         dataType: "json",
+        cache: false,
         success: function (data)
         {
             ProcessQueueData(data);
@@ -113,33 +116,6 @@ function ProcessQueueData(data)
     if(data.length > 0)
     {
         $('#noActiveUser').hide();
-
-        var theActiveUser = data[0];
-
-        if(myUserObject == undefined || myUserObject.rowid != theActiveUser.rowid)
-        {
-            $('#showActiveUser').show();
-            console.log('showactiveuser');
-            $('#activeUserName').text(theActiveUser.UserName);
-
-            var theEndDate = new Date(theActiveUser.StartDate);
-            theEndDate.setSeconds(theEndDate.getSeconds() + myControlTime);
-
-            $("#activeUserCountdown")
-                .countdown(theEndDate)
-                .on('update.countdown', function(event)
-                {
-                    $(this).text(event.strftime('%H:%M:%S'));
-                })
-                .on('finish.countdown', function()
-                {
-                    GetQueue();
-                });
-        }
-        else
-        {
-            $('#showActiveUser').hide();
-        }
     }
     else
     {
@@ -151,23 +127,37 @@ function ProcessQueueData(data)
     $('#queueTable').empty();
     $.each(data, function(i, item)
     {
-        var theStartDate = new Date(item.StartDate);
-
         var $tr = $('<tr>');
-
-        if(theStartDate <= new Date())
-        {
-            $tr.addClass('active-user-row');
-        }
-
         var $td = $('<td>').text(item.UserName);
 
+        // Mark myself
         if(myUserObject != undefined && myUserObject.rowid == item.rowid)
         {
             $td.addClass('user-row');
         }
 
-        $tr.append($td, $('<td>').text(moment(item.StartDate).format('DD.MM.YYYY HH:mm:ss')));
+        // User Online?
+        if(item.Seconds < 0)
+        {
+            $tr.append($td, $('<td>').text('ist online'));
+
+            $tr.addClass('active-user-row');
+
+            // Online User is someone else?
+            if(myUserObject == undefined || (myUserObject != undefined &&  myUserObject.rowid != item.rowid))
+            {
+                $('#activeUserName').text(item.UserName);
+                $('#showActiveUser').show();
+            }
+            else
+            {
+                $('#showActiveUser').hide();
+            }
+        }
+        else
+        {
+            $tr.append($td, $('<td>').text('in ' + item.Seconds + ' Sekunden'));
+        }
 
         $('#queueTable').append($tr);
     });
@@ -200,53 +190,70 @@ $('#myForm').submit(function (e) {
 function ProcessPostResult(data)
 {
     $('#bSubmit').prop('disabled', true);
+    $('#userName').prop('disabled', true);
+    $('#userName').val(data.UserName);
 
-    var theExpirationDate = new Date(data.StartDate);
-    theExpirationDate.setSeconds(theExpirationDate.getSeconds()+myControlTime);
+    var theStartDate = new Date();
+    theStartDate.setSeconds(theStartDate.getSeconds() + data.Seconds);
 
-    myUserObject = data;
-    Cookies.set('data', data,{ expires: theExpirationDate });
+    var theExpirationDate = new Date();
+    theExpirationDate = theExpirationDate.setSeconds(theExpirationDate.getSeconds() + data.SecondsEnd);
 
-    $("#preControl").show();
+    myUserObject =
+    {
+        'rowid': data.rowid,
+        'UserId': data.UserId,
+        'StartDate': theStartDate,
+        'ExpirationDate': theExpirationDate
+    }
 
-    // Start timer until control allowed
-    $("#countdownUntilStart")
-        .countdown(new Date(data.StartDate))
-        .on('update.countdown', function(event)
-        {
-            $(this).text(event.strftime('%H:%M:%S'));
-        })
-        .on('finish.countdown', ControlStart);
+    Cookies.set('data', myUserObject,{ expires: theExpirationDate });
 
-    GetQueue();
+    setTimeout(ControlStart(theExpirationDate), data.Seconds*1000);
 }
 
 // Control of robot starts
-function ControlStart(event)
+function ControlStart(theExpirationDate)
 {
-    $('#showActiveUser').hide();
-    $("#preControl").hide();
-    $("#control").show();
+    console.log('Control Start');
 
-    var theEndDate = new Date(myUserObject.StartDate);
-    theEndDate.setSeconds(theEndDate.getSeconds() + myControlTime);
+    $('#noActiveUser').hide();
+    $('#showActiveUser').hide();
+    $("#control").show();
+    $("#control").focus();
 
     // Start timer until control allowed
     $("#countdownUntilStop")
-        .countdown(theEndDate)
+        .countdown(theExpirationDate)
         .on('update.countdown', function(event)
         {
-            $(this).text(event.strftime('%H:%M:%S'));
-        })
-        .on('finish.countdown', ControlStop);
+            $(this).text(event.strftime('%S'));
+        });
+
+        //.on('finish.countdown', ControlStop);
+
+    setTimeout(ControlStop, (new Date(theExpirationDate).getTime()) - (new Date()).getTime());
 }
 
-function ControlStop(event)
+function ControlStop()
 {
+    console.log('Control Stop');
+
     $("#control").hide();
     $('#bSubmit').prop('disabled', false);
+    $('#userName').prop('disabled', false);
+    $('#bSubmit').focus();
 
     Cookies.remove('data');
     myUserObject = null;
-    GetQueue();
+
+    // Readd user to queue
+    if($("#cbRoundRobin").is(':checked'))
+    {
+        setTimeout(function()
+        {
+            $('#myForm').submit();
+        }
+        , 1000);
+    }
 }

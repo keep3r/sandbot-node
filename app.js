@@ -7,8 +7,6 @@ var express = require('express'),
     bodyParser = require('body-parser'),
     static = require('serve-static');
 
-    // fuer raspberry
-    //gpio = require('pi-gpio');
 
 global.CurrentUserId = 0;
 global.ControlTime = 60;// [s]
@@ -20,10 +18,6 @@ app.set('port', process.env.PORT || 3000);
 
 app.use(logger('dev'));  /* 'default', 'short', 'tiny', 'dev' */
 app.use(bodyParser.json());
-
-//app.use(bodyParser.urlencoded({
-//    extended: true
-//}));
 
 app.use(static(path.join(__dirname, 'public')));
 
