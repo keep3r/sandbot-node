@@ -72,7 +72,7 @@ function QueueTask()
             {
                 if(global.CurrentUserId!=0)
                 {
-                    SetText('');
+                    SetText('niemert');
                     global.CurrentUserId=0;
                 }
             }
