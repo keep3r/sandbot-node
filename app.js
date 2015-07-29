@@ -81,15 +81,10 @@ io.on('connection', function(socket)
 
     socket.on('add user', function (username, fn)
     {
-
-
-        for(var i=0;i<io.sockets.sockets.length;i++)
+        if(username.length < 2)
         {
-            if(io.sockets.sockets[i].username == username)
-            {
-                fn(false);
-                return;
-            }
+            fn(false);
+            return;
         }
 
         // we store the username in the socket session for this client
@@ -98,23 +93,52 @@ io.on('connection', function(socket)
 
         // add the client's username to the global list
         //usernames[username] = username;
-        //++numUsers;
+        ++numUsers;
 
         addedUser = true;
-
-        fn(true);
 
         // echo globally (all clients) that a person has connected
         socket.broadcast.emit('user joined', {
             username: socket.username,
             numUsers: numUsers
         });
+
+        fn(true);
     });
 
-    socket.on('newUser', function(data, fn)
+    // when the client emits 'new message', this listens and executes
+    socket.on('new message', function (data)
     {
-        socket.username = data;
-        theQueue.addUserToQueue(data, socket.id, fn);
+        console.log('new message' + data);
+        // we tell the client to execute 'new message'
+        socket.broadcast.emit('new message', {
+            username: socket.username,
+            message: data
+        });
+    });
+
+
+    // when the client emits 'typing', we broadcast it to others
+    socket.on('typing', function () {
+        socket.broadcast.emit('typing', {
+            username: socket.username
+        });
+    });
+
+    // when the client emits 'stop typing', we broadcast it to others
+    socket.on('stop typing', function () {
+        socket.broadcast.emit('stop typing', {
+            username: socket.username
+        });
+    });
+
+    socket.on('add control user', function(data, fn)
+    {
+        // socket.username = data;
+
+
+
+        theQueue.addUserToQueue(socket.username, socket.id, fn);
         io.emit('queue', theQueue.getQueue());
     });
 

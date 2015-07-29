@@ -32,21 +32,34 @@
             <div class="col-md-8" id="cam">
                 <img class="img-responsive" src="images/robot.png" />
                 <div>
-                    <div id="noActiveUser">
-                        Niemand kontrolliert den Roboter. Trage dich links in die Warteliste ein.
-                    </div>
+                    <div class="panel panel-default panel-height">
+                        <div class="panel-heading">
 
-                    <div id="showActiveUser">
-                        <div id="activeUserName" class="inline"></div> steuert den Roboter noch
-                    </div>
+                            <div id="noActiveUser">
+                                Niemand kontrolliert den Roboter. Trage dich links in die Warteliste ein.
+                            </div>
 
-                    <div id="control" class="inline">
-                        Bewege den Roboter mit WASD.
-                        <br/>
-                        Du steuerst den Roboter noch
-                    </div>
-                    <div id="countdown" class="inline">
-                        <div id="countdownUntilStop" class="inline"></div>&nbsp;Sekunden
+                            <div id="showActiveUser">
+                                <div id="activeUserName" class="inline"></div> steuert den Roboter noch
+                            </div>
+
+                            <div id="control" class="inline">
+                                Bewege den Roboter mit WASD.
+                                <br/>
+                                Du steuerst den Roboter noch
+                            </div>
+                            <div id="countdown" class="inline">
+                                <div id="countdownUntilStop" class="inline"></div>&nbsp;Sekunden
+                            </div>
+
+                        </div>
+                        <div class="panel-body">
+
+                        </div>
+
+                        <div class="panel-footer text-right">
+                                Spannung: <div id="voltage" class="inline"></div>V
+                        </div>
                     </div>
 
                 </div>
@@ -59,7 +72,7 @@
 
                         Warteliste <span class="badge" id="queueCount">0</span>
 
-                        <button type="button" class="btn btn-primary pull-right">Mitmachen</button>
+                        <button type="button" class="btn btn-primary pull-right" id="bJoinControl">Mitmachen</button>
                         <div class="clearfix"></div>
                     </div>
                     <div class="panel-body panel-overflow">
@@ -85,15 +98,27 @@
 
         <div class="row">
             <div class="col-md-12">
-                <div class="info">
-                    Spannung: <div id="voltage" class="inline"></div>V
+                <div class="panel panel-default panel-height">
+                    <div class="panel-heading">
+                        Chat <span class="badge" id="chatUserCount">0</span>
+                    </div>
+                    <div class="panel-body panel-overflow">
+                        <div class="chatArea">
+                            <ul class="messages"></ul>
+                        </div>
+                    </div>
+
+                    <div class="panel-footer ">
+                        <form class="form-horizontal" id="chatForm">
+                            <div class="form-group form-inline">
+                                <input type="text" class="form-control input-sm"  id="chatMessage" placeholder="Schriib do din text ane">
+                                <button type="submit" class="btn btn-primary">Send</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
-
         </div>
-
-
-
     </div>
 
     <div class="modal fade" id="myModal">
@@ -110,14 +135,14 @@
                     Disclaimer bla kein scheiss bla<br/>
                     <br/>
 
-                    <div class="form-inline">
+                    <form class="form-inline" id="userForm">
                         <div class="form-group has-feedback" id="modalForm">
                             <label class="control-label" for="modalUserName">Name</label>
                             <input type="text" class="form-control input-sm"  id="modalUserName" placeholder="Do de name ineschriibe">
                             <span class="glyphicon form-control-feedback" id="glyphUserName"></span>
                             <span class="help-block" id="helpUserName"></span>
                         </div>
-                    </div>
+                    </form>
 
                 </div>
                 <div class="modal-footer">

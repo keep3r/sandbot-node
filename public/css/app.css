@@ -75,3 +75,54 @@ body
     max-height: 395px;
     min-height: 150px;
 }
+
+.container-fluid
+{
+    margin: 10px;
+}
+
+ul {
+    list-style: none;
+    word-wrap: break-word;
+}
+
+.messages {
+    font-size: 150%;
+}
+
+.inputMessage {
+    font-size: 100%;
+}
+
+.log {
+    color: gray;
+    font-size: 70%;
+    margin: 5px;
+    text-align: center;
+}
+
+/* Messages */
+
+.chatArea {
+    height: 100%;
+    padding-bottom: 60px;
+}
+
+.messages {
+    height: 100%;
+    margin: 0;
+    overflow-y: scroll;
+    padding: 10px 20px 10px 20px;
+}
+
+.message.typing .messageBody {
+    color: gray;
+}
+
+.username {
+    float: left;
+    font-weight: 700;
+    overflow: hidden;
+    padding-right: 15px;
+    text-align: right;
+}
