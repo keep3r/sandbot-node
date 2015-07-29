@@ -1,36 +1,117 @@
 
-var sqlite3 = require('sqlite3').verbose(),
-    repeat = require('repeat'),
-    spark = require('sparknode'),
+var repeat = require('repeat'),
     request = require('request');
 
-//var db = new sqlite3.Database('./db/queue.db');
-var db = new sqlite3.Database(':memory:');
+module.exports = function Queue(io)
+{
+    var self = this;
+    var io = io;
+
+    var myQueue = new Array();
 
 
-/* sparknode API, not working
-var core = new spark.Core({
-    accessToken: 'f6334659f4068fabeee17165caa85892e6fc5959',
-    id: '54ff6d066672524853261267'
-});
-*/
+    // Queue object with user information
+    function QueueEntry(theSocketId, theUserName)
+    {
+        this.SocketId = theSocketId;
+        this.UserName = theUserName;
+        this.StartDate = null;
+    }
 
-// Database init
-db.serialize(function() {
+    // Get list of all queued users
+    this.getQueue =  function()
+    {
+        return myQueue;
+    }
 
-    db.run('CREATE TABLE IF NOT EXISTS Queue (UserId INT, UserName TEXT, StartDate INTEGER)');
-    //db.run('INSERT INTO Queue (UserId, UserName, StartDate) VALUES (23,"Nico","2015-07-19 15:23:23")');
+    // Add new user to Queue
+    this.addUserToQueue = function(theUserName, theSocketId, fn)
+    {
+        var theEntry = new QueueEntry(theSocketId, theUserName);
 
-    // db.run("INSERT INTO Queue (UserId, UserName, StartDate) VALUES (?,?,?)", [23, 'Nico', new Date()]);
+        myQueue.push(theEntry);
 
-    db.each('SELECT rowid AS id, UserName,StartDate FROM Queue', function(err, row) {
-        console.log(row.id + ': ' + row.UserName + ': ' + row.StartDate);
-    });
-});
+        fn(theEntry);
+    }
+
+    //Remove a user after disconnect
+    this.removeUserFromQueue = function(theSocketId)
+    {
+        var theUserInQueue = false;
+        for (var i = 0; i < myQueue.length; i++) {
+            if (myQueue[i].SocketId == theSocketId)
+            {
+                myQueue.splice(i, 1);
+                theUserInQueue = true;
+                break;
+            }
+        }
+
+        return theUserInQueue;
+    }
+
+    // Get current control user including seconds left
+    this.getControlUser = function()
+    {
+        if(myQueue.length == 0) return null;
+
+        if(myQueue[0].StartDate != null)
+        {
+            var theDiff = Math.round((new Date().getTime() - new Date(myQueue[0].StartDate).getTime())/1000);
+            var theControlUser = myQueue[0];
+            theControlUser.ControlDuration = global.ControlDuration - theDiff;
+
+            return theControlUser;
+        }
+        else
+        {
+            return null;
+        }
+    }
+
+    // Repeating Queue tasks
+    this._QueueTask = function()
+    {
+        if(myQueue.length == 0) return;
+
+        var theEndDate = new Date();
+        theEndDate.setSeconds(theEndDate.getSeconds() - global.ControlDuration);
+
+        // Give top user control of robot
+        if(myQueue[0].StartDate == null)
+        {
+            myQueue[0].StartDate = new Date();
+
+            var theControlUser = myQueue[0];
+            theControlUser.ControlDuration = global.ControlDuration;
+
+            global.ControllingSocketId = myQueue[0].SocketId;
+
+            io.emit('ControlStart', theControlUser);
+
+            SetText(myQueue[0].UserName);
+        }
+        // Remove user from queue and stop control
+        else if(myQueue[0].StartDate < theEndDate)
+        {
+            global.ControllingSocketId = null;
+            io.to(myQueue[0].SocketId).emit('ControlStop');
+
+            myQueue.splice(0, 1);
+
+            io.emit('queue', self.getQueue());
+        }
+    }
+
+    repeat(this._QueueTask).every(500, 'ms').start.now();
+
+}
 
 // SetText on SparkNode via HTTPS POST
 function SetText(theName)
 {
+    return;
+
     request({
         url: 'https://api.spark.io/v1/devices/54ff6d066672524853261267/SetText',
         method: 'POST',
@@ -45,133 +126,4 @@ function SetText(theName)
             console.log(response.statusCode, body);
         }
     });
-}
-
-function QueueTask()
-{
-    var theDate = new Date();
-    theDate.setSeconds(theDate.getSeconds() - global.ControlTime);
-
-    // Delete expired entries
-    db.run("DELETE FROM Queue WHERE StartDate < ?", [GetTimeStamp(theDate)], function(err)
-    {
-        // Fetch all remaining entries
-        db.all("SELECT rowid, * FROM Queue ORDER BY StartDate ASC", function(err, rows)
-        {
-            if(rows.length > 0)
-            {
-                // New controlling user, change text on sparknode
-                if(global.CurrentUserId != rows[0].UserId)
-                {
-                    SetText(rows[0].UserName.substring(0,20) + ' steuert');
-                }
-
-                global.CurrentUserId = rows[0].UserId;
-            }
-            else
-            {
-                if(global.CurrentUserId!=0)
-                {
-                    SetText('Niemand steuert');
-                    global.CurrentUserId=0;
-                }
-            }
-        });
-    });
-}
-
-repeat(QueueTask).every(1000, 'ms').start.now();
-
-// GET queue with all users
-exports.getAll = function(req, res)
-{
-    // Fetch all entries strftime('%s',StartDate) -
-    db.all("SELECT rowid, UserName, StartDate, StartDate - strftime('%s',CURRENT_TIMESTAMP)  AS Seconds FROM Queue ORDER BY StartDate ASC", function(err, rows)
-    {
-        console.log(err);
-        res.send(JSON.stringify(rows));
-    });
-
-};
-
-// random integer
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-// Add user to queue
-exports.addQueue = function(req, res)
-{
-    var data = req.body;
-
-    // User already in Queue?
-    if(data.UserId != undefined)
-    {
-        db.get("SELECT rowid, UserId, UserName, StartDate - strftime('%s',CURRENT_TIMESTAMP) AS Seconds FROM Queue WHERE UserId=?", [data.UserId],
-            function (err, row)
-            {
-                if (!err && row != undefined)
-                {
-                    res.send(JSON.stringify(
-                        {
-                            rowid: row.rowid,
-                            UserId: row.UserId,
-                            UserName: row.UserName,
-                            Seconds: row.Seconds,
-                            SecondsEnd: row.Seconds+global.ControlTime
-                        }));
-                }
-            }
-        );
-    }
-    else if(data.UserName != undefined)
-    {
-        db.get("SELECT rowid, StartDate FROM Queue ORDER BY StartDate DESC", [],
-            function (err, row) {
-                var theDate = new Date();
-
-                if (!err && row != undefined) {
-                    theDate = new Date(row.StartDate * 1000);
-                    theDate.setSeconds(theDate.getSeconds() + global.ControlTime);
-                }
-
-                var theUserId = getRandomInt(429491, 4294967295);
-
-                db.run("INSERT INTO Queue (UserId, UserName, StartDate) VALUES (?,?,?)",
-                    [theUserId, data.UserName, GetTimeStamp(theDate)],
-                    function (err) {
-                        if (err) {
-                            res.send({'error': 'An error has occurred'});
-                        } else {
-                            console.log('Success: ' + this.lastID + ':' + theUserId);
-                            console.log('Date: ' + theDate);
-                            //res.send('{"userId":'+theUserId+'}');
-                            var theSeconds = GetTimeStamp(theDate) - GetTimeStamp(new Date());
-
-                            res.send(JSON.stringify(
-                                {
-                                    rowid: this.lastID,
-                                    UserId: theUserId,
-                                    UserName: data.UserName,
-                                    Seconds: theSeconds,
-                                    SecondsEnd: theSeconds+global.ControlTime
-                                }));
-                        }
-                    }
-                );
-
-            }
-        );
-    }
-}
-
-// ProcessQueueData user in queue
-exports.refreshReservation = function(req, res)
-{
-    res.send(JSON.stringify({success: true}));
-};
-
-function GetTimeStamp(theDate)
-{
-    return Math.round(theDate.getTime() / 1000);
 }

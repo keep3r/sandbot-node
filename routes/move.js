@@ -1,76 +1,62 @@
-
 var exec = require('child_process').exec;
 
-exports.moveRobot = function(req, res)
+exports.moveRobot = function(theAction, fn)
 {
-    var theUserId = req.params.id;
-    var theAction = req.params.action;
-
-    console.log('id: ' + theUserId);
-    console.log('action: ' + theAction);
-
     var theReturnValue = false;
-    if(theUserId > 0 && theUserId == global.CurrentUserId)
+    var thePythonArgument = '';
+
+    switch(theAction)
     {
-        theReturnValue = true;
-
-        var thePythonArgument = '';
-
-        switch(theAction)
+        case 'forward':
         {
-            case 'forward':
-            {
-                console.log('move forward');
-                thePythonArgument = 'f'
-                break;
-            }
-            case 'backward':
-            {
-                console.log('move backward');
-                thePythonArgument = 'b'
-                break;
-            }
-            case 'left':
-            {
-                console.log('move left');
-                thePythonArgument = 'l'
-                break;
-            }
-            case 'right':
-            {
-                console.log('move right');
-                thePythonArgument = 'r'
-                break;
-            }
-            case 'stop':
-            {
-                console.log('move stop');
-                thePythonArgument = 's'
-                break;
-            }
+            console.log('move forward');
+            thePythonArgument = 'f'
+            break;
         }
-
-        if(thePythonArgument != '')
+        case 'backward':
         {
-            exec('python /var/www/client.py ' + thePythonArgument,{cwd: '/var/www'},
-                function (error, stdout, stderr)
-                {
-                    if(error)
-                    {
-                        console.log('error' + error);
-                        console.log('stderr' + stderr);
-                    }
-                    else
-                    {
-                        console.log('stdout' + stdout);
-                        theReturnValue = true;
-
-                    }
-                }
-            );
+            console.log('move backward');
+            thePythonArgument = 'b'
+            break;
         }
-
+        case 'left':
+        {
+            console.log('move left');
+            thePythonArgument = 'l'
+            break;
+        }
+        case 'right':
+        {
+            console.log('move right');
+            thePythonArgument = 'r'
+            break;
+        }
+        case 'stop':
+        {
+            console.log('move stop');
+            thePythonArgument = 's'
+            break;
+        }
     }
 
-    res.send(JSON.stringify({success: theReturnValue}));
+    if(thePythonArgument != '')
+    {
+        exec('python /var/www/client.py ' + thePythonArgument,{cwd: '/var/www'},
+            function (error, stdout, stderr)
+            {
+                if(error)
+                {
+                    console.log('error' + error);
+                    console.log('stderr' + stderr);
+                }
+                else
+                {
+                    console.log('stdout' + stdout);
+                    theReturnValue = true;
+                }
+
+                fn(theReturnValue);
+            }
+        );
+    }
 };

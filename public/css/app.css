@@ -4,18 +4,14 @@ body
     margin: 0px;
 }
 
-
-.container
+.container-fluid
 {
-    width: 880px;
-    margin: 0 auto;
+    max-width:1024px;
 }
 
 .sidebar
 {
     float: left;
-    width: 240px;
-    height:480px;
     text-align: left;
     overflow:auto;
     background-color: #bbd2df;
@@ -24,21 +20,17 @@ body
 .subSidebar
 {
     float: left;
-    width: 240px;
-    height:50px;
     text-align: left;
     overflow:auto;
     background-color: #bbd2df;
     position: relative;
     top: 50%;
-    //transform: translateY(50%);
 }
 
 
 .content
 {
     float: right;
-    width: 640px;
     margin: 0 auto;
     background-color: #bbd2df;
 }
@@ -47,8 +39,6 @@ body
 {
     text-align: center;
     float: right;
-    width: 640px;
-    height:50px;
     margin: 0 auto;
     background-color: #bbd2df;
     font-size: 15px;
@@ -74,7 +64,14 @@ body
     background-color: lightgrey;
 }
 
-.countdown
+.inline
 {
     display: inline;
+}
+
+.panel-overflow
+{
+    overflow-y:auto;
+    max-height: 395px;
+    min-height: 150px;
 }

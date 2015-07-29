@@ -9,8 +9,8 @@ var express = require('express'),
     static = require('serve-static');
 
 
-global.CurrentUserId = 0;
-global.ControlTime = 60;// [s]
+global.ControllingSocketId = null;
+global.ControlDuration = 10;// [s]
 
 var app = express();
 
@@ -19,16 +19,137 @@ app.set('port', process.env.PORT || 80);
 
 app.use(logger('dev'));  /* 'default', 'short', 'tiny', 'dev' */
 app.use(bodyParser.json());
-
 app.use(static(path.join(__dirname, 'public')));
 
 
-app.get('/api/queue', queue.getAll);
-app.get('/api/info', info.getInfo);
-app.get('/api/queue/:id', queue.refreshReservation);
-app.post('/api/queue', queue.addQueue);
-app.get('/api/move/:action/:id', move.moveRobot);
-
-http.createServer(app).listen(app.get('port'), function () {
+var theServer = http.createServer(app).listen(app.get('port'), function () {
   console.log("Express server listening on port " + app.get('port'));
 });
+
+var io = require('socket.io').listen(theServer);
+
+var theQueue = new queue(io);
+var theInfo = new info(io);
+
+// usernames which are currently connected to the chat
+var usernames = {};
+var numUsers = 0;
+
+var myClients = new Array();
+
+io.on('connection', function(socket)
+{
+
+    /*
+    console.log(io.sockets.sockets.map(function(e) {
+        return e.username;
+    }));
+    */
+
+    var addedUser = false;
+
+    console.log('user connected: ' + socket.id);
+
+    socket.emit('queue', theQueue.getQueue());
+    socket.emit('info', theInfo.getInfo());
+
+    var theControlUser = theQueue.getControlUser()
+    if(theControlUser) socket.emit('ControlStart', theControlUser);
+
+
+    socket.on('check user', function (username, fn)
+    {
+        console.log('check user');
+
+        if(username.length < 2)
+        {
+            fn('Name ist zu kurz');
+            return;
+        }
+
+        for(var i=0;i<io.sockets.sockets.length;i++)
+        {
+            if(io.sockets.sockets[i].username == username)
+            {
+                fn('Dieser Name ist bereits vergeben');
+                return;
+            }
+        }
+
+        fn(null);
+    });
+
+    socket.on('add user', function (username, fn)
+    {
+
+
+        for(var i=0;i<io.sockets.sockets.length;i++)
+        {
+            if(io.sockets.sockets[i].username == username)
+            {
+                fn(false);
+                return;
+            }
+        }
+
+        // we store the username in the socket session for this client
+        socket.username = username;
+
+
+        // add the client's username to the global list
+        //usernames[username] = username;
+        //++numUsers;
+
+        addedUser = true;
+
+        fn(true);
+
+        // echo globally (all clients) that a person has connected
+        socket.broadcast.emit('user joined', {
+            username: socket.username,
+            numUsers: numUsers
+        });
+    });
+
+    socket.on('newUser', function(data, fn)
+    {
+        socket.username = data;
+        theQueue.addUserToQueue(data, socket.id, fn);
+        io.emit('queue', theQueue.getQueue());
+    });
+
+    socket.on('move', function(data, fn)
+    {
+        if(socket.id == global.ControllingSocketId)
+        {
+            move.moveRobot(data, fn);
+        }
+        else
+        {
+            fn(false);
+        }
+    });
+
+    socket.on('disconnect', function()
+    {
+        console.log('user disconnected: ' + socket.id);
+        if(theQueue.removeUserFromQueue(socket.id))
+        {
+            io.emit('queue', theQueue.getQueue());
+        }
+
+        // remove the username from global usernames list
+        if (addedUser)
+        {
+            delete usernames[socket.username];
+            --numUsers;
+
+            // echo globally that this client has left
+            socket.broadcast.emit('user left', {
+                username: socket.username,
+                numUsers: numUsers
+            });
+        }
+    });
+});
+

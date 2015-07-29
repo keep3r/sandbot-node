@@ -6,36 +6,82 @@ var myKeyPressStartTime;
 var myLastKeyPress;
 var myUserObject;
 
+var socket = io();
+
+socket.on('queue', function(msg)
+{
+    ProcessQueueData(msg);
+});
+
+socket.on('info', function(data)
+{
+    $('#voltage').text(data.Voltage);
+});
+
+socket.on('ControlStart', function(data)
+{
+    ControlStart(data);
+});
+
+socket.on('ControlStop', function()
+{
+    ControlStop();
+});
+
 $(document).ready(function()
 {
+    $('#myModal').on('shown.bs.modal', function () {
+        $('#modalUserName').focus();
+    })
+
+    // show username modal
+    $('#myModal').modal({
+        backdrop: 'static',
+        keyboard: false,
+        show: true
+    });
+
     $('#userName').focus();
-    $('#showActiveUser').hide();
-    $('#control').hide();
+    $('#showActiveUser').addClass('hidden');
+    $('#control').addClass('hidden');
+    $("#countdown").addClass('hidden');
 
-    if(myCookieData != undefined)
+    $('#modalUserName').keyup( function()
     {
-        $.ajax({
-            type: "POST",
-            url: "/api/queue",
-            data: JSON.stringify({UserId: myCookieData.UserId}),
-            contentType: "application/json; charset=utf-8",
-            crossDomain: true,
-            dataType: "json",
-            success: ProcessPostResult,
-
-            error: function (data)
+        socket.emit('check user', $('#modalUserName').val(),function(res)
+        {
+            if(res == null)
             {
-                console.log(data);
+                $('#modalForm').removeClass('has-warning').addClass('has-success');
+                $('#glyphUserName').removeClass('glyphicon-remove').addClass('glyphicon-ok');
+                $('#helpUserName').text('');
+            }
+            else
+            {
+                $('#modalForm').removeClass('has-success').addClass('has-warning');
+                $('#glyphUserName').removeClass('glyphicon-warning-sign').addClass('glyphicon-remove');
+                $('#helpUserName').text(res);
             }
         });
-    }
+    });
 
-    // Start everything
-    GetQueue();
-    myUpdateQueueIntervalTimer = setInterval(GetQueue, myQueueUpdateInterval);
+});
 
-    GetInfo();
-    setInterval(GetInfo, myInfoUpdateInterval);
+$(document).on("click", "#bJoin", function(event)
+{
+    JoinAndCloseModal();
+});
+
+$(document).on("click", "#bJoinAndControl", function(event)
+{
+
+    JoinAndCloseModal();
+
+    socket.emit('newUser', $('#modalUserName').val(),
+        function(theUserObject)
+        {
+            ProcessPostResult(theUserObject);
+        });
 });
 
 $(document).keydown(function(e)
@@ -53,28 +99,28 @@ $(document).keydown(function(e)
             case 95:    // A
             case 37:    // ?
             {
-                $.get('/api/move/left/' + myUserObject.UserId);
+                socket.emit('move', 'left', function(res){alert(res);});
                 break;
             }
             case 68:    // d
             case 100:   // D
             case 39:    // ?
             {
-                $.get('/api/move/right/' + myUserObject.UserId);
+                socket.emit('move', 'right',function(res){});
                 break;
             }
             case 87:    // w
             case 119:   // W
             case 38:    // ?
             {
-                $.get('/api/move/forward/' + myUserObject.UserId);
+                socket.emit('move', 'forward',function(res){});
                 break;
             }
             case 83:    // s
             case 115:   // S
             case 40:    // ?
             {
-                $.get('/api/move/backward/' + myUserObject.UserId);
+                socket.emit('move', 'backward',function(res){});
                 break;
             }
         }
@@ -87,167 +133,121 @@ $(document).keyup(function(e)
 {
     if(myUserObject == undefined) return;
 
-    $.get("/api/move/stop/" + myUserObject.UserId);
+    socket.emit('move', 'stop', function(res){});
 });
 
-
-
-// Get Queue
-function GetQueue()
+function JoinAndCloseModal()
 {
-    $.ajax({
-        type: "GET",
-        url: "/api/queue",
-        contentType: "application/json; charset=utf-8",
-        crossDomain: true,
-        dataType: "json",
-        cache: false,
-        success: function (data)
+    socket.emit('add user', $('#modalUserName').val(),
+        function(res)
         {
-            ProcessQueueData(data);
-        },
-
-        error: function (data)
-        {
-        }
-    });
-}
-
-// Get Info
-function GetInfo()
-{
-    $.ajax({
-        type: "GET",
-        url: "/api/info",
-        contentType: "application/json; charset=utf-8",
-        crossDomain: true,
-        dataType: "json",
-        cache: false,
-        success: function (data)
-        {
-            $('#voltage').text(data.Voltage);
-        },
-
-        error: function (data)
-        {
-        }
-    });
+            if(res)
+            {
+                $('#myModal').modal('hide');
+            }
+        });
 }
 
 // ProcessQueueData
 function ProcessQueueData(data)
 {
-    // Show the current user controlling the robot including countdown
+    console.log('ProcessQueueData');
+
     if(data.length > 0)
     {
-        $('#noActiveUser').hide();
+        $('#noActiveUser').addClass('hidden');
     }
     else
     {
-        $('#noActiveUser').show();
-        $('#showActiveUser').hide();
+        $('#noActiveUser').removeClass('hidden');
+        $('#showActiveUser').addClass('hidden');
+        $("#countdown").addClass('hidden');
     }
+
+    $('#queueCount').text(data.length);
 
     // Load Queue table
     $('#queueTable').empty();
-    $.each(data, function(i, item)
-    {
-        var $tr = $('<tr>');
-        var $td = $('<td>').text(item.UserName);
 
-        // Mark myself
-        if(myUserObject != undefined && myUserObject.rowid == item.rowid)
+    for(var i=0;i<data.length;i++)
+    {
+        var item = data[i];
+
+        var $tr = $('<tr>');
+        $tr.append($('<td>').text(i+'.'));
+
+        var $td = $('<td>').text(item.UserName);
+        console.log(item.UserName);
+
+        // Mark local user in queue
+        if (myUserObject != undefined && myUserObject.SocketId == item.SocketId)
         {
             $td.addClass('user-row');
         }
 
-        // User Online?
-        if(item.Seconds < 0)
+        // Mark first user as online
+        if (i==0)
         {
             $tr.append($td, $('<td>').text('ist online'));
-
             $tr.addClass('active-user-row');
-
-            // Online User is someone else?
-            if(myUserObject == undefined || (myUserObject != undefined &&  myUserObject.rowid != item.rowid))
-            {
-                $('#activeUserName').text(item.UserName);
-                $('#showActiveUser').show();
-            }
-            else
-            {
-                $('#showActiveUser').hide();
-            }
         }
         else
         {
-            $tr.append($td, $('<td>').text('in ' + item.Seconds + ' Sekunden'));
+            $tr.append($td);
         }
 
         $('#queueTable').append($tr);
-    });
+    }
 }
 
 
-// POST to Queue
+// Add user to queue
 $('#myForm').submit(function (e) {
 
     e.preventDefault();
 
     var theUserName = $('#userName').val();
 
-    $.ajax({
-        type: "POST",
-        url: "/api/queue",
-        data: JSON.stringify({UserName: theUserName}),
-        contentType: "application/json; charset=utf-8",
-        crossDomain: true,
-        dataType: "json",
-        success: ProcessPostResult,
-
-        error: function (data)
+    socket.emit('newUser', $('#userName').val(),
+        function(theUserObject)
         {
-            console.log(data);
-        }
-    });
+            ProcessPostResult(theUserObject);
+        });
+
 });
 
 function ProcessPostResult(data)
 {
+    console.log('ProcessPostResult');
+
     $('#bSubmit').prop('disabled', true);
     $('#userName').prop('disabled', true);
     $('#userName').val(data.UserName);
 
-    var theStartDate = new Date();
-    theStartDate.setSeconds(theStartDate.getSeconds() + data.Seconds);
-
-    var theExpirationDate = new Date();
-    theExpirationDate = theExpirationDate.setSeconds(theExpirationDate.getSeconds() + data.SecondsEnd);
-
-    myUserObject =
-    {
-        'rowid': data.rowid,
-        'UserId': data.UserId,
-        'StartDate': theStartDate,
-        'ExpirationDate': theExpirationDate
-    }
-
-    Cookies.set('data', myUserObject,{ expires: theExpirationDate });
-
-    console.log('ProcessPostResult' + data.Seconds);
-
-    setTimeout(function(){ControlStart(theExpirationDate)}, data.Seconds*1000);
+    myUserObject = data;
 }
 
 // Control of robot starts
-function ControlStart(theExpirationDate)
+function ControlStart(data)
 {
     console.log('Control Start');
 
-    $('#noActiveUser').hide();
-    $('#showActiveUser').hide();
-    $("#control").show();
-    $("#control").focus();
+
+    if(myUserObject != null && myUserObject.SocketId == data.SocketId)
+    {
+        $('#noActiveUser').addClass('hidden');
+        $('#showActiveUser').addClass('hidden');
+        $("#control").removeClass('hidden');
+        $("#control").focus();
+    }
+    else
+    {
+        $('#activeUserName').text(data.UserName);
+        $('#showActiveUser').removeClass('hidden');
+    }
+
+    var theExpirationDate = new Date();
+    theExpirationDate = theExpirationDate.setSeconds(theExpirationDate.getSeconds() + data.ControlDuration);
 
     // Start timer until control stopped
     $("#countdownUntilStop")
@@ -257,16 +257,15 @@ function ControlStart(theExpirationDate)
             $(this).text(event.strftime('%S'));
         });
 
-        //.on('finish.countdown', ControlStop);
+    $("#countdown").removeClass('hidden');
 
-    setTimeout(ControlStop, (new Date(theExpirationDate).getTime()) - (new Date()).getTime());
 }
 
 function ControlStop()
 {
     console.log('Control Stop');
 
-    $("#control").hide();
+    $("#control").addClass('hidden');
     $('#bSubmit').prop('disabled', false);
     $('#userName').prop('disabled', false);
     $('#bSubmit').focus();
@@ -274,7 +273,7 @@ function ControlStop()
     Cookies.remove('data');
     myUserObject = null;
 
-    // Readd user to queue
+    // Readd user to Queue
     if($("#cbRoundRobin").is(':checked'))
     {
         setTimeout(function()
