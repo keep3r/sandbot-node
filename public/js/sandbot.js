@@ -1,14 +1,30 @@
-var myCookieData = Cookies.getJSON('data');
-var myQueueUpdateInterval = 1000;
-var myInfoUpdateInterval = 10000;
-var myUpdateQueueIntervalTimer;
 var myKeyPressStartTime;
 var myLastKeyPress;
 var myUserObject;
+var userName = Cookies.get('userName');
 
 var socket = io();
 
 // Socket Event
+
+/**
+ *      socket.io functions definitions
+ */
+
+socket.on('connect', function(number)
+{
+    // user in cookie?
+    if(userName)
+    {
+        JoinAndCloseModal();
+    }
+});
+
+socket.on('reconnect', function(number)
+{
+    JoinAndCloseModal();
+});
+
 socket.on('queue', function(msg)
 {
     ProcessQueueData(msg);
@@ -29,259 +45,119 @@ socket.on('ControlStop', function()
     ControlStop();
 });
 
-// Whenever the server emits 'new message', update the chat body
-socket.on('new message', function (data) {
-    console.log('new message' + data);
-    addChatMessage(data);
-});
-
-// Whenever the server emits 'user joined', log it in the chat body
-socket.on('user joined', function (data)
-{
-    log(data.username + ' joined');
-    addParticipantsMessage(data);
-});
-
-// Whenever the server emits 'user left', log it in the chat body
-socket.on('user left', function (data)
-{
-    log(data.username + ' left');
-    addParticipantsMessage(data);
-    removeChatTyping(data);
-});
-
-// Whenever the server emits 'typing', show the typing message
-socket.on('typing', function (data) {
-    addChatTyping(data);
-});
-
-// Whenever the server emits 'stop typing', kill the typing message
-socket.on('stop typing', function (data) {
-    removeChatTyping(data);
-});
-
-var $messages = $('.messages'); // Messages area
-
-function addParticipantsMessage (data)
-{
-    $('#chatUserCount').text(data.numUsers);
-}
-
-$('#chatMessage').on('input', function() {
-    updateTyping();
-});
-
-var typing = false;
-var TYPING_TIMER_LENGTH = 400; // ms
-
-// Updates the typing event
-function updateTyping () {
-    if (true) {
-        if (!typing) {
-            typing = true;
-            socket.emit('typing');
-        }
-        lastTypingTime = (new Date()).getTime();
-
-        setTimeout(function () {
-            var typingTimer = (new Date()).getTime();
-            var timeDiff = typingTimer - lastTypingTime;
-            if (timeDiff >= TYPING_TIMER_LENGTH && typing) {
-                socket.emit('stop typing');
-                typing = false;
-            }
-        }, TYPING_TIMER_LENGTH);
-    }
-}
-
-// Log a message
-function log (message, options)
-{
-    var $el = $('<li>').addClass('log').text(message);
-    addMessageElement($el, options);
-}
-
-var COLORS = [
-    '#e21400', '#91580f', '#f8a700', '#f78b00',
-    '#58dc00', '#287b00', '#a8f07a', '#4ae8c4',
-    '#3b88eb', '#3824aa', '#a700ff', '#d300e7'
-];
-
-var FADE_TIME = 150; // ms
-
-// Adds the visual chat message to the message list
-function addChatMessage (data, options) {
-    // Don't fade the message in if there is an 'X was typing'
-    var $typingMessages = getTypingMessages(data);
-    options = options || {};
-    if ($typingMessages.length !== 0) {
-        options.fade = false;
-        $typingMessages.remove();
-    }
-
-    var $usernameDiv = $('<span class="username"/>')
-        .text(data.username)
-        .css('color', getUsernameColor(data.username));
-    var $messageBodyDiv = $('<span class="messageBody">')
-        .text(data.message);
-
-    var typingClass = data.typing ? 'typing' : '';
-    var $messageDiv = $('<li class="message"/>')
-        .data('username', data.username)
-        .addClass(typingClass)
-        .append($usernameDiv, $messageBodyDiv);
-
-    addMessageElement($messageDiv, options);
-}
-
-// Gets the color of a username through our hash function
-function getUsernameColor (username) {
-    // Compute hash code
-    var hash = 7;
-    for (var i = 0; i < username.length; i++) {
-        hash = username.charCodeAt(i) + (hash << 5) - hash;
-    }
-    // Calculate color
-    var index = Math.abs(hash % COLORS.length);
-    return COLORS[index];
-}
-
-// Gets the 'X is typing' messages of a user
-function getTypingMessages (data) {
-    return $('.typing.message').filter(function (i) {
-        return $(this).data('username') === data.username;
-    });
-}
-
-// Adds the visual chat typing message
-function addChatTyping (data) {
-    data.typing = true;
-    data.message = 'is typing';
-    addChatMessage(data);
-}
-
-// Removes the visual chat typing message
-function removeChatTyping (data) {
-    getTypingMessages(data).fadeOut(function () {
-        $(this).remove();
-    });
-}
-
-// Adds a message element to the messages and scrolls to the bottom
-// el - The element to add as a message
-// options.fade - If the element should fade-in (default = true)
-// options.prepend - If the element should prepend
-//   all other messages (default = false)
-function addMessageElement (el, options) {
-    var $el = $(el);
-
-    // Setup default options
-    if (!options) {
-        options = {};
-    }
-    if (typeof options.fade === 'undefined') {
-        options.fade = true;
-    }
-    if (typeof options.prepend === 'undefined') {
-        options.prepend = false;
-    }
-
-    // Apply options
-    if (options.fade) {
-        $el.hide().fadeIn(FADE_TIME);
-    }
-    if (options.prepend) {
-        $messages.prepend($el);
-    } else {
-        $messages.append($el);
-    }
-    $messages[0].scrollTop = $messages[0].scrollHeight;
-}
-
-
 
 $(document).ready(function()
 {
-    $('#myModal').on('shown.bs.modal', function () {
-        $('#modalUserName').focus();
-    })
 
-    // show username modal
-    $('#myModal').modal({
-        backdrop: 'static',
-        keyboard: false,
-        show: true
+    $('#myModal').on('shown.bs.modal', function ()
+    {
+        var $modalUserName = $('#modalUserName');
+        $modalUserName.focus();
+
+        if($modalUserName.val().length > 0)
+        {
+            checkModalUserName();
+        }
     });
+
 
     $('#userName').focus();
     $('#showActiveUser').addClass('hidden');
-    $('#control').addClass('hidden');
+    $('.control').addClass('hidden');
     $("#countdown").addClass('hidden');
 
     $('#modalUserName').keyup( function()
     {
-        socket.emit('check user', $('#modalUserName').val(),function(res)
-        {
-            if(res == null)
-            {
-                $('#modalForm').removeClass('has-warning').addClass('has-success');
-                $('#glyphUserName').removeClass('glyphicon-remove').addClass('glyphicon-ok');
-                $('#helpUserName').text('');
-            }
-            else
-            {
-                $('#modalForm').removeClass('has-success').addClass('has-warning');
-                $('#glyphUserName').removeClass('glyphicon-warning-sign').addClass('glyphicon-remove');
-                $('#helpUserName').text(res);
-            }
-        });
+        checkModalUserName();
     });
+
+    if(!isMobile())
+    {
+        console.log('hiding mobile controls');
+        $('.mobile-only').addClass('hidden');
+    }
+
+    if(userName)
+    {
+        $('#modalUserName').val(userName);
+
+    }
+    else
+    {
+        // show username modal
+        $('#myModal').modal({
+            backdrop: 'static',
+            keyboard: false,
+            show: true
+        });
+    }
 
 });
 
 $(function(){
-    $('#userForm').on('submit', function(e){
+    $('#userForm').on('submit', function(e)
+    {
         e.preventDefault();
+        userName = cleanInput($('#modalUserName').val());
         JoinAndCloseModal();
     });
 });
 
 $(document).on("click", "#bJoin", function(event)
 {
+    userName = cleanInput($('#modalUserName').val());
     JoinAndCloseModal();
 });
 
-
-$(document).on("click", "#bJoinAndControl", function(event)
+$("#bJoinControl").click(function(event)
 {
-
-    JoinAndCloseModal();
-
-    socket.emit('add control user', $('#modalUserName').val(),
+    socket.emit('add control user',
         function(theUserObject)
-        {
+            {
             ProcessPostResult(theUserObject);
         });
 });
 
-$(document).on("click", "#bJoinControl", function(event)
+$("#bLogout").click(function(e)
 {
-    socket.emit('add control user', '',
-        function(theUserObject)
-        {
-            ProcessPostResult(theUserObject);
-        });
+    logout();
 });
 
 
-
-$(function(){
-    $('#chatForm').on('submit', function(e){
-        e.preventDefault();
-
-        socket.emit('new message', $('#chatMessage').val());
-
-    });
+$("#bForward").click(function(e)
+{
+    var $btn = $(this);
+    if(myUserObject == undefined) return;
+    console.log('control forward');
+    socket.emit('move', 'forward', function(res) {moveButtonEffect($btn, res);});
+});
+$("#bRight").click(function(e)
+{
+    var $btn = $(this);
+    if(myUserObject == undefined) return;
+    console.log('control Right');
+    socket.emit('move', 'right', function(res) {moveButtonEffect($btn, res);});
+});
+$("#bLeft").click(function(e)
+{
+    var $btn = $(this);
+    if(myUserObject == undefined) return;
+    console.log('control Left');
+    socket.emit('move', 'left', function(res) {moveButtonEffect($btn, res);});
+});
+$("#bBackward").click(function(e)
+{
+    var $btn = $(this);
+    if(myUserObject == undefined) return;
+    console.log('control Backward');
+    socket.emit('move', 'backward', function(res) {moveButtonEffect($btn, res);});
+});
+$("#bStop").click(function(e)
+{
+    var $btn = $(this);
+    if(myUserObject == undefined) return;
+    console.log('control Stop');
+    socket.emit('move', 'stop', function(res) {moveButtonEffect($btn, res);});
 });
 
 $(document).keydown(function(e)
@@ -336,18 +212,58 @@ $(document).keyup(function(e)
     socket.emit('move', 'stop', function(res){});
 });
 
+
+function moveButtonEffect(button, res)
+{
+    // Robot moved
+    if(res)
+    {
+        button.effect( "highlight", {color: '#5cb85c'}, 'fast');
+    }
+    else
+    {
+        button.effect( "highlight", {color: '#d9534f'}, 'slow');
+    }
+}
+
+function checkModalUserName()
+{
+    socket.emit('check user', $('#modalUserName').val(),function(res)
+    {
+        if(res == null)
+        {
+            $('#modalForm').removeClass('has-warning').addClass('has-success');
+            $('#glyphUserName').removeClass('glyphicon-remove').addClass('glyphicon-ok');
+            $('#helpUserName').text('');
+        }
+        else
+        {
+            $('#modalForm').removeClass('has-success').addClass('has-warning');
+            $('#glyphUserName').removeClass('glyphicon-warning-sign').addClass('glyphicon-remove');
+            $('#helpUserName').text(res);
+        }
+    });
+}
+
+function logout()
+{
+    userName = null;
+    Cookies.remove('userName');
+    location.reload();
+}
+
 function JoinAndCloseModal()
 {
-    socket.emit('add user', $('#modalUserName').val(),
+    socket.emit('add user', userName,
         function(res)
         {
             if(res)
             {
+                Cookies.set('userName', res);
                 $('#myModal').modal('hide');
             }
         });
 }
-
 // ProcessQueueData
 function ProcessQueueData(data)
 {
@@ -404,7 +320,7 @@ function ProcessPostResult(data)
 {
     console.log('ProcessPostResult');
 
-    $('#bSubmit').prop('disabled', true);
+    $('#bJoinControl').prop('disabled', true);
     $('#userName').prop('disabled', true);
     $('#userName').val(data.UserName);
 
@@ -421,7 +337,7 @@ function ControlStart(data)
     {
         $('#noActiveUser').addClass('hidden');
         $('#showActiveUser').addClass('hidden');
-        $("#control").removeClass('hidden');
+        $(".control").removeClass('hidden');
         $("#control").focus();
     }
     else
@@ -449,12 +365,11 @@ function ControlStop()
 {
     console.log('Control Stop');
 
-    $("#control").addClass('hidden');
-    $('#bSubmit').prop('disabled', false);
+    $(".control").addClass('hidden');
+    $('#bJoinControl').prop('disabled', false);
     $('#userName').prop('disabled', false);
-    $('#bSubmit').focus();
+    $('#bJoinControl').focus();
 
-    Cookies.remove('data');
     myUserObject = null;
 
     // Readd user to Queue
@@ -462,7 +377,7 @@ function ControlStop()
     {
         setTimeout(function()
         {
-            $('#myForm').submit();
+            $('#bJoinControl').click();
         }
         , 1000);
     }

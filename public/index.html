@@ -6,9 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <link rel="stylesheet" type="text/css" href="css/app.css"/>
+    <link rel="stylesheet" type="text/css" href="css/app-chat.css"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+
     <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
     <script src="js/jquery.countdown.js"></script>
     <script src="js/moment.min.js"></script>
     <script src="js/js.cookie.js"></script>
@@ -33,17 +36,17 @@
                 <img class="img-responsive" src="images/robot.png" />
                 <div>
                     <div class="panel panel-default panel-height">
-                        <div class="panel-heading">
+                        <div class="panel-heading text-center">
 
                             <div id="noActiveUser">
-                                Niemand kontrolliert den Roboter. Trage dich links in die Warteliste ein.
+                                Niemand kontrolliert den Roboter. Trage dich in die Warteliste ein.
                             </div>
 
                             <div id="showActiveUser">
                                 <div id="activeUserName" class="inline"></div> steuert den Roboter noch
                             </div>
 
-                            <div id="control" class="inline">
+                            <div id="control" class="control inline">
                                 Bewege den Roboter mit WASD.
                                 <br/>
                                 Du steuerst den Roboter noch
@@ -51,6 +54,43 @@
                             <div id="countdown" class="inline">
                                 <div id="countdownUntilStop" class="inline"></div>&nbsp;Sekunden
                             </div>
+
+                            <div class="control">
+                                <table class="mobile-only"width="100%">
+                                    <tr>
+                                        <td align="center" >
+                                            <div id="bForward" class="btn btn-default btn-lg" style="margin-bottom: 5px">
+                                                <span class="glyphicon glyphicon-arrow-up"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center" >
+
+                                            <div id="bLeft" class="btn btn-default btn-lg">
+                                                <span class="glyphicon glyphicon-arrow-left"></span>
+                                            </div>
+
+                                            <div id="bStop" class="btn btn-default btn-lg">
+                                                <span class="glyphicon glyphicon-stop"></span>
+                                            </div>
+
+                                            <div id="bRight" class="btn btn-default btn-lg">
+                                                <span class="glyphicon glyphicon-arrow-right"></span>
+                                            </div>
+
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td align="center">
+                                            <div type="button" id="bBackward" class="btn btn-default btn-lg" style="margin-top: 5px">
+                                                <span class="glyphicon glyphicon-arrow-down"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+
 
                         </div>
                         <div class="panel-body">
@@ -71,11 +111,10 @@
                     <div class="panel-heading">
 
                         Warteliste <span class="badge" id="queueCount">0</span>
-
                         <button type="button" class="btn btn-primary pull-right" id="bJoinControl">Mitmachen</button>
                         <div class="clearfix"></div>
                     </div>
-                    <div class="panel-body panel-overflow">
+                    <div class="panel-body queue-panel-overflow">
                         <table id="queueTable" class="table-condensed">
 
                         </table>
@@ -85,24 +124,22 @@
                         <div class="checkbox">
                             <label><input id="cbRoundRobin" type="checkbox">Wiederverbinden?</label>
                         </div>
-
                     </div>
                 </div>
-
-
             </div>
-
-
-
         </div>
 
         <div class="row">
             <div class="col-md-12">
                 <div class="panel panel-default panel-height">
+
                     <div class="panel-heading">
                         Chat <span class="badge" id="chatUserCount">0</span>
+                        <button type="button" class="btn btn-default pull-right" id="bLogout">Logout</button>
+                        <div class="clearfix"></div>
                     </div>
-                    <div class="panel-body panel-overflow">
+
+                    <div class="panel-body chat-panel-overflow" id="chatAreaScroll">
                         <div class="chatArea">
                             <ul class="messages"></ul>
                         </div>
@@ -146,15 +183,17 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" id="bJoinAndControl">Mitmache!</button>
-                    <button type="button" class="btn btn-default" id="bJoin">Nur luege</button>
-                </div>
-            </div><!-- /.modal-content -->
+                    <!--<button type="button" class="btn btn-primary" id="bJoinAndControl">Mitmache!</button>-->
+                   <button type="button" class="btn btn-primary" id="bJoin">Loooooos!</button>
+                 </div>
+             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
 
 
+    <script src="js/sandbot-helper.js"></script>
     <script src="js/sandbot.js"></script>
+    <script src="js/sandbot-chat.js"></script>
 
 </body>
 

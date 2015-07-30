@@ -31,11 +31,7 @@ var io = require('socket.io').listen(theServer);
 var theQueue = new queue(io);
 var theInfo = new info(io);
 
-// usernames which are currently connected to the chat
-var usernames = {};
 var numUsers = 0;
-
-var myClients = new Array();
 
 io.on('connection', function(socket)
 {
@@ -56,7 +52,6 @@ io.on('connection', function(socket)
     var theControlUser = theQueue.getControlUser()
     if(theControlUser) socket.emit('ControlStart', theControlUser);
 
-
     socket.on('check user', function (username, fn)
     {
         console.log('check user');
@@ -69,7 +64,7 @@ io.on('connection', function(socket)
 
         for(var i=0;i<io.sockets.sockets.length;i++)
         {
-            if(io.sockets.sockets[i].username == username)
+            if(io.sockets.sockets[i].id != socket.id && io.sockets.sockets[i].username == username)
             {
                 fn('Dieser Name ist bereits vergeben');
                 return;
@@ -81,21 +76,28 @@ io.on('connection', function(socket)
 
     socket.on('add user', function (username, fn)
     {
-        if(username.length < 2)
+        for(var i=0;i<io.sockets.sockets.length;i++)
         {
-            fn(false);
-            return;
+            if(io.sockets.sockets[i].id != socket.id && io.sockets.sockets[i].username == username)
+            {
+                console.log(username);
+                username = username + (Math.floor(Math.random() * 100) + 1);
+            }
         }
 
         // we store the username in the socket session for this client
         socket.username = username;
 
+        if(!addedUser)
+        {
+            ++numUsers;
+            addedUser = true;
+        }
 
-        // add the client's username to the global list
-        //usernames[username] = username;
-        ++numUsers;
-
-        addedUser = true;
+        socket.emit('login', {
+            numUsers: numUsers,
+            username: socket.username
+        });
 
         // echo globally (all clients) that a person has connected
         socket.broadcast.emit('user joined', {
@@ -103,7 +105,7 @@ io.on('connection', function(socket)
             numUsers: numUsers
         });
 
-        fn(true);
+        fn(username);
     });
 
     // when the client emits 'new message', this listens and executes
@@ -132,12 +134,8 @@ io.on('connection', function(socket)
         });
     });
 
-    socket.on('add control user', function(data, fn)
+    socket.on('add control user', function(fn)
     {
-        // socket.username = data;
-
-
-
         theQueue.addUserToQueue(socket.username, socket.id, fn);
         io.emit('queue', theQueue.getQueue());
     });
@@ -157,6 +155,8 @@ io.on('connection', function(socket)
     socket.on('disconnect', function()
     {
         console.log('user disconnected: ' + socket.id);
+
+        // remove user from control queue
         if(theQueue.removeUserFromQueue(socket.id))
         {
             io.emit('queue', theQueue.getQueue());
@@ -165,7 +165,6 @@ io.on('connection', function(socket)
         // remove the username from global usernames list
         if (addedUser)
         {
-            delete usernames[socket.username];
             --numUsers;
 
             // echo globally that this client has left
@@ -176,4 +175,3 @@ io.on('connection', function(socket)
         }
     });
 });
-
