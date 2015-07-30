@@ -10,7 +10,7 @@ var express = require('express'),
 
 
 global.ControllingSocketId = null;
-global.ControlDuration = 10;// [s]
+global.ControlDuration = 60;// [s]
 
 var app = express();
 
