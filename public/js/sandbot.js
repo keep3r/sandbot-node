@@ -175,7 +175,7 @@ $(document).keydown(function(e)
             case 95:    // A
             case 37:    // ?
             {
-                socket.emit('move', 'left', function(res){alert(res);});
+                socket.emit('move', 'left', function(res){});
                 break;
             }
             case 68:    // d

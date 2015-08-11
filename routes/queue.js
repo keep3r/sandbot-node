@@ -89,7 +89,7 @@ module.exports = function Queue(io)
 
             io.emit('ControlStart', theControlUser);
 
-            SetText(myQueue[0].UserName);
+            SetText(myQueue[0].UserName+' steuert');
         }
         // Remove user from queue and stop control
         else if(myQueue[0].StartDate < theEndDate)
@@ -100,6 +100,7 @@ module.exports = function Queue(io)
             myQueue.splice(0, 1);
 
             io.emit('queue', self.getQueue());
+	    SetText('niemand steuert');	
         }
     }
 
@@ -110,8 +111,7 @@ module.exports = function Queue(io)
 // SetText on SparkNode via HTTPS POST
 function SetText(theName)
 {
-    return;
-
+   
     request({
         url: 'https://api.spark.io/v1/devices/54ff6d066672524853261267/SetText',
         method: 'POST',
