@@ -1,5 +1,6 @@
 var exec = require('child_process').exec,
-    repeat = require('repeat');
+    repeat = require('repeat'),
+    fs = require('fs');
 
 
 module.exports = function Info(io)
@@ -40,6 +41,17 @@ module.exports = function Info(io)
         );
     }
 
+    // Voltage to text file
+    this._VoltageToFileTask = function()
+    {
+        var theDateString = new Date().toISOString().replace('T', ' ').substr(0, 19);
+
+        fs.appendFile('voltage.txt', theDateString + ',' + myInfo.Voltage + '\r\n', function (err) {
+
+        });
+
+    }
+
     // Repeating info tasks
     this._InfoTask = function()
     {
@@ -49,6 +61,7 @@ module.exports = function Info(io)
     }
 
     repeat(this._InfoTask).every(5000, 'ms').start.now();
+    repeat(this._VoltageToFileTask).every(1, 's').start.now();
 }
 
 
