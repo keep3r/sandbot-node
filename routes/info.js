@@ -62,7 +62,7 @@ module.exports = function Info(io)
     }
 
     repeat(this._InfoTask).every(5000, 'ms').start.now();
-    repeat(this._VoltageToFileTask).every(1, 's').start.now();
+    repeat(this._VoltageToFileTask).every(60, 's').start.now();
 }
 
 
