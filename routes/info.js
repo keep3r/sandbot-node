@@ -11,6 +11,7 @@ module.exports = function Info(io)
     var myInfo = new function InfoData()
     {
         this.Voltage = 0;
+        this.VoltageLimit = 12.5;
     }
 
     this.getInfo = function()

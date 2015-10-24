@@ -35,13 +35,6 @@ var numUsers = 0;
 
 io.on('connection', function(socket)
 {
-
-    /*
-    console.log(io.sockets.sockets.map(function(e) {
-        return e.username;
-    }));
-    */
-
     var addedUser = false;
 
     console.log('user connected: ' + socket.id);
@@ -71,6 +64,12 @@ io.on('connection', function(socket)
             }
         }
 
+        if(username == "admin")
+        {
+            fn('Du bist kein Administrator');
+            return;
+        }
+
         fn(null);
     });
 
@@ -83,6 +82,17 @@ io.on('connection', function(socket)
                 console.log(username);
                 username = username + (Math.floor(Math.random() * 100) + 1);
             }
+        }
+
+        // administrator benutzer name
+        if(username == "hansdampf42")
+        {
+            socket.isAdmin = true;
+            username = "admin";
+        }
+        else
+        {
+            socket.isAdmin = false;
         }
 
         // we store the username in the socket session for this client
@@ -136,12 +146,26 @@ io.on('connection', function(socket)
 
     socket.on('add control user', function(fn)
     {
+        var info = theInfo.getInfo();
+
+        if(!socket.isAdmin && info.Voltage < info.VoltageLimit)
+        {
+            return fn(false);
+        }
+
         theQueue.addUserToQueue(socket.username, socket.id, fn);
         io.emit('queue', theQueue.getQueue());
     });
 
     socket.on('move', function(data, fn)
     {
+        var info = theInfo.getInfo();
+
+        if(!socket.isAdmin && info.Voltage < info.VoltageLimit)
+        {
+            return fn(false);
+        }
+
         if(socket.id == global.ControllingSocketId)
         {
             move.moveRobot(data, fn);

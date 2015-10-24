@@ -33,6 +33,21 @@ socket.on('queue', function(msg)
 socket.on('info', function(data)
 {
     $('#voltage').text(data.Voltage);
+    $('#voltageLimit').text(data.VoltageLimit);
+
+    // Roboter unter eine Spannungsgrenze sperren
+    // Dies wird auch vom Server gesperrt, sinnlos zu versuchen den Browser zu ueberlisten
+    if(data.Voltage < data.VoltageLimit)
+    {
+        $('#bJoinControl').prop('disabled', true);
+        $("#robotOffline").removeClass('hidden');
+    }
+    else
+    {
+        $('#bJoinControl').prop('disabled', false);
+        $("#robotOffline").addClass('hidden');
+    }
+
 });
 
 socket.on('ControlStart', function(data)

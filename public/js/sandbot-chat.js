@@ -38,6 +38,14 @@ socket.on('login', function (data) {
         prepend: true
     });
     addParticipantsMessage(data);
+
+    if(data.username == "admin")
+    {
+        // Admin darf immer steuern
+        // Dies wird auch vom Server kontrolliert
+        $('#bJoinControl').prop('disabled', false);
+    }
+
 });
 
 // Whenever the server emits 'new message', update the chat body
